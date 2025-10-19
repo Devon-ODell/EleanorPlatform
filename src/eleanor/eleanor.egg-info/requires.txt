@@ -1,0 +1,15 @@
+openbb[all]
+pandas
+numpy
+scipy
+ta
+matplotlib
+requests
+pydantic
+pydantic-settings
+
+[dev]
+black
+flake8
+isort
+pytest

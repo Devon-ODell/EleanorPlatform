@@ -1,0 +1,22 @@
+{
+  "name": "Eleanor Weekly Rebalance",
+  "nodes": [
+    {
+      "parameters": { "triggerTimes": { "item": [ { "mode": "everyWeek", "weekday": "sunday", "hour": 18 } ] } },
+      "id": "cron2",
+      "name": "Weekly",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 400]
+    },
+    {
+      "parameters": { "command": "bash", "arguments": "-lc \"cd /workspace && source .venv/bin/activate && python - <<'PY'\nimport json,pandas as pd\nfrom eleanor.bayes import bayes_weight\nfrom eleanor.sizing import sharpe_ratio\nhist=pd.read_csv('./data/trade_history.csv') if __import__('os').path.exists('./data/trade_history.csv') else pd.DataFrame(columns=['ts','symbol','score','ret'])\nif len(hist)>20:\n    posts=bayes_weight(hist['score'].astype(int),(hist['ret']>0).astype(int))\n    print(json.dumps({'ok':True,'post':posts}))\nelse:\n    print(json.dumps({'ok':True,'post':{'weights':{-2:0.1,-1:0.15,0:0.2,1:0.25,2:0.3}}}))\nPY\""},
+      "id": "rebalance",
+      "name": "Compute Weights",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [460, 400]
+    }
+  ],
+  "connections": { "Weekly": { "main": [ [ { "node": "Compute Weights", "type": "main", "index": 0 } ] ] } }
+}

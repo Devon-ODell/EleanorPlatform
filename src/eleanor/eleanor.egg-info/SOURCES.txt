@@ -1,0 +1,6 @@
+pyproject.toml
+eleanor.egg-info/PKG-INFO
+eleanor.egg-info/SOURCES.txt
+eleanor.egg-info/dependency_links.txt
+eleanor.egg-info/requires.txt
+eleanor.egg-info/top_level.txt

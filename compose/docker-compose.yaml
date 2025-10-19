@@ -1,0 +1,30 @@
+services:
+  n8n:
+    image: "n8nio/n8n:latest"
+    ports: ["${N8N_PORT}:2222"]
+    environment:
+      - TZ=${TZ}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+      - N8N_BASIC_AUTH_PWRD=${N8N_BASIC_AUTH_PWRD}
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_PRUNE_MAX_AGE=336
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=2000
+    volumes:
+      - ../data/n8n:/home/node/.n8n
+      - ../:/workspace
+
+  hummingbot:
+    image: ${HBOT_IMG}
+    container_name: hummingbot
+    tty: true
+    stdin_open: true
+    enviropnment:
+      - TZ=${TZ}
+      - CONFIG_FILE_PATH=${HBOT_CONFIG_PATH}
+    volumes:
+      - ../conf/hummingbot:/conf
+      - ../logs/hummingbot:/logs
+      - ../data:/data
+    

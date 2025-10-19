@@ -1,0 +1,4 @@
+client:
+  log_level: INFO
+  strategy_autostart: false
+  # store logs in /logs mount

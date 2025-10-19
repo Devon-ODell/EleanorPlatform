@@ -1,0 +1,43 @@
+{
+  "name": "Eleanor Intraday",
+  "nodes": [
+    {
+      "parameters": { "triggerTimes": { "item": [ { "mode": "everyMinute", "minutesInterval": 15 } ] } },
+      "id": "cron",
+      "name": "Every 15 min",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": { "command": "bash", "arguments": "-lc \"cd /workspace && source .venv/bin/activate && python src/eleanor/run_live.py\"" },
+      "id": "exec",
+      "name": "Run Strategy",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [460, 200]
+    },
+    {
+      "parameters": { "functionCode": "const payload = JSON.parse(items[0].json.stdout);\nreturn payload.results.map(r=>({json:r}));" },
+      "id": "fn",
+      "name": "Parse JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "channel": "plainText",
+        "text": "={{\"Eleanor: \"+$json.symbol+\" score \"+$json.score+\" weight \"+$json.weight.toFixed(3)+\" order \"+$json.order}}"
+      },
+      "id": "log",
+      "name": "Log",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [980, 200]
+    }
+  ],
+  "connections": { "Every 15 min": { "main": [ [ { "node": "Run Strategy", "type": "main", "index": 0 } ] ] },
+    "Run Strategy": { "main": [ [ { "node": "Parse JSON", "type": "main", "index": 0 } ] ] },
+    "Parse JSON": { "main": [ [ { "node": "Log", "type": "main", "index": 0 } ] ] } }
+}

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eleanor"
+version = "0.1.0"
+description = "Autonomous AI hedge fund agent integrating OpenBB, Hummingbot, and n8n"
+authors = [{ name = "Devon O'Dell" }]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "openbb[all]",
+    "pandas",
+    "numpy",
+    "scipy",
+    "ta",
+    "matplotlib",
+    "requests",
+    "pydantic",
+    "pydantic-settings"
+]
+
+[project.optional-dependencies]
+dev = ["black", "flake8", "isort", "pytest"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["eleanor*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"

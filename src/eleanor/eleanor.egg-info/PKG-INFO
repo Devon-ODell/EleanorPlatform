@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: eleanor
+Version: 0.1.0
+Summary: Autonomous AI hedge fund agent integrating OpenBB, Hummingbot, and n8n
+Author: Devon O'Dell
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: openbb[all]
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: scipy
+Requires-Dist: ta
+Requires-Dist: matplotlib
+Requires-Dist: requests
+Requires-Dist: pydantic
+Requires-Dist: pydantic-settings
+Provides-Extra: dev
+Requires-Dist: black; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: isort; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
