@@ -1,0 +1,62 @@
+###############################################################################
+# Hummingbot DeFi Arbitrage Strategy Configuration
+###############################################################################
+
+# Strategy: Cross-exchange arbitrage between DEXs
+strategy: cross_exchange_market_making
+
+# Primary market (where we maintain inventory)
+maker_market: uniswap_ethereum_mainnet
+
+# Secondary market (where we arbitrage)
+taker_market: sushiswap_ethereum_mainnet
+
+# Trading pairs
+maker_market_trading_pair: ETH-USDT
+taker_market_trading_pair: ETH-USDT
+
+# Minimum profitability threshold (in percentage)
+# After accounting for gas fees and slippage
+min_profitability: 0.5
+
+# Order amount in base currency (ETH)
+order_amount: 0.1
+
+# Adjust order size based on profitability
+adjust_order_enabled: true
+
+# Active order cancellation
+active_order_canceling: true
+
+# Cancel order timeout (in seconds)
+cancel_order_wait_time: 60
+
+# Limit order adjustment
+limit_order_min_expiration: 130.0
+
+# Top depth tolerance (depth of orderbook to consider)
+top_depth_tolerance: 0.0
+
+# Anti-hysteresis duration
+anti_hysteresis_duration: 60.0
+
+# Order size taker volume factor
+order_size_taker_volume_factor: 0.25
+
+# Order size taker balance factor
+order_size_taker_balance_factor: 0.995
+
+# Order size portfolio ratio limit
+order_size_portfolio_ratio_limit: 0.1667
+
+# Slippage buffer (percentage)
+slippage_buffer: 0.05
+
+# Gas price level for Ethereum transactions
+# Options: slow, medium, fast
+gateway_transaction_gas_price_level: fast
+
+# Enable debug logging
+debug_price_shim: false
+gateway_api_port: 15888
+gateway_api_host: localhost

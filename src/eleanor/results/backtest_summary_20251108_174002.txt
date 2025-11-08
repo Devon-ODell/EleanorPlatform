@@ -1,0 +1,16 @@
+======================================================================
+DeFi ARBITRAGE BACKTEST SUMMARY
+======================================================================
+
+initial_capital: 15000
+final_capital: 42410.0233940934
+total_trades: 1274
+total_profit_usd: 27410.023394093405
+total_return_pct: 182.73348929395604
+win_rate: 100.0
+avg_profit_per_trade: 21.514932020481478
+total_gas_paid: 15934.369514052218
+net_profit_after_gas: 11475.653880041187
+sharpe_ratio: 69.9069277211655
+max_drawdown: 0.0
+calmar_ratio: 0

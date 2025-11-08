@@ -1,5 +1,5 @@
 import requests, time
-from .config import SET
+from .conf import SET
 
 def _hdr():
     return {
