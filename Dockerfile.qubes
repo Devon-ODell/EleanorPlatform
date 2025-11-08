@@ -1,0 +1,40 @@
+# Eleanor Platform - Qubes OS Hardened Dockerfile
+FROM python:3.11-slim-bookworm
+
+# Security: Run as non-root user
+RUN groupadd -r eleanor && useradd -r -g eleanor -s /bin/bash eleanor
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /root/.cache
+
+# Copy application code
+COPY src/eleanor/ ./
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/results /app/data /app/logs && \
+    chown -R eleanor:eleanor /app
+
+# Switch to non-root user
+USER eleanor
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+# Default command (paper trading)
+CMD ["python", "run_paper_trading.py", \
+     "--capital", "15000", \
+     "--duration", "24", \
+     "--interval", "30", \
+     "--min-profit", "0.2"]

@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # n8n workflow automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: eleanor-n8n
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2222:5678"  # Bind to localhost only
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme123!}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:2222}
+      - GENERIC_TIMEZONE=${TIMEZONE:-America/New_York}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-$(openssl rand -hex 32)}
+      # Qubes OS specific
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      - NODE_ENV=production
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../workflows:/workflows:ro
+      - ../src/eleanor:/scripts:ro
+    networks:
+      - eleanor-net
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  # Hummingbot trading bot (for live trading)
+  hummingbot:
+    image: hummingbot/hummingbot:latest
+    container_name: eleanor-hummingbot
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PAPER_TRADE_ENABLED=true  # Always start with paper trading
+    volumes:
+      - hummingbot_conf:/conf
+      - hummingbot_logs:/logs
+      - hummingbot_data:/data
+      - ../conf/hummingbot:/conf_host:ro
+    networks:
+      - eleanor-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Eleanor DeFi arbitrage service
+  eleanor-arb:
+    build:
+      context: ../
+      dockerfile: Dockerfile.qubes
+    container_name: eleanor-arbitrage
+    restart: unless-stopped
+    environment:
+      - INITIAL_CAPITAL=${INITIAL_CAPITAL:-15000}
+      - MIN_PROFIT_PCT=${MIN_PROFIT_PCT:-0.2}
+      - MAX_TRADE_SIZE=${MAX_TRADE_SIZE:-5000}
+      - CHECK_INTERVAL=${CHECK_INTERVAL:-30}
+      - PAPER_TRADING=true
+    volumes:
+      - ../src/eleanor:/app:ro
+      - eleanor_results:/app/results
+      - eleanor_data:/app/data
+      - eleanor_logs:/app/logs
+    networks:
+      - eleanor-net
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # VPN health monitor
+  vpn-monitor:
+    image: curlimages/curl:latest
+    container_name: eleanor-vpn-monitor
+    restart: unless-stopped
+    command: >
+      sh -c '
+      while true; do
+        if curl -sf https://am.i.mullvad.net/json | grep -q "mullvad_exit_ip\":true"; then
+          echo "[$(date)] VPN: Connected to Mullvad"
+        else
+          echo "[$(date)] VPN: NOT CONNECTED - STOPPING SERVICES"
+          # In production, trigger emergency stop
+        fi
+        sleep 60
+      done
+      '
+    networks:
+      - eleanor-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  n8n_data:
+    driver: local
+  hummingbot_conf:
+    driver: local
+  hummingbot_logs:
+    driver: local
+  hummingbot_data:
+    driver: local
+  eleanor_results:
+    driver: local
+  eleanor_data:
+    driver: local
+  eleanor_logs:
+    driver: local
+
+networks:
+  eleanor-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
