@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # Eleanor Platform Arbitrage Bot
+  arbitrage:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitoring
+    container_name: eleanor-arbitrage
+    restart: unless-stopped
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - ENABLE_METRICS=true
+      - METRICS_PORT=8000
+      - INITIAL_CAPITAL=15000
+      - PAPER_TRADING=true
+      - SCRAPE_INTERVAL_MINUTES=15
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"  # Prometheus metrics endpoint
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: eleanor-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'  # Keep 30 days of data
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'  # Enable API to reload config
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"  # Prometheus UI
+    networks:
+      - monitoring
+    depends_on:
+      - arbitrage
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana - Visualization dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: eleanor-grafana
+    restart: unless-stopped
+    environment:
+      # Security settings
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-eleanor2025}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY:-eleanor_secret_key_change_me}
+
+      # Server settings
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+
+      # Anonymous access (disabled by default)
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+
+      # Disable telemetry
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+
+      # Install plugins
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"  # Grafana UI
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge

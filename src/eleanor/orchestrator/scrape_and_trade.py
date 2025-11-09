@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from scrapers.dex_selenium_scraper import MultiDEXScraper
 from ai.arbitrage_decision_engine import ArbitrageDecisionEngine, ArbitrageSignal
 from defi_arbitrage import ArbitrageExecutor
+from monitoring.prometheus_metrics import get_metrics, start_metrics_server
 
 
 class ArbitrageOrchestrator:
@@ -35,7 +36,9 @@ class ArbitrageOrchestrator:
                  use_headless: bool = True,
                  use_proxy: bool = False,
                  proxy_list: list = None,
-                 paper_trading: bool = True):
+                 paper_trading: bool = True,
+                 enable_metrics: bool = True,
+                 metrics_port: int = 8000):
         """
         Initialize orchestrator
 
@@ -46,10 +49,23 @@ class ArbitrageOrchestrator:
             use_proxy: Use proxy rotation
             proxy_list: List of proxy servers
             paper_trading: If True, simulate trades; if False, execute real trades
+            enable_metrics: Enable Prometheus metrics (default True)
+            metrics_port: Port for Prometheus metrics endpoint (default 8000)
         """
         self.initial_capital = initial_capital
         self.scrape_interval = timedelta(minutes=scrape_interval_minutes)
         self.paper_trading = paper_trading
+        self.start_time = datetime.now()
+
+        # Initialize Prometheus metrics
+        self.enable_metrics = enable_metrics
+        if enable_metrics:
+            logging.info(f"Initializing Prometheus metrics on port {metrics_port}...")
+            start_metrics_server(port=metrics_port)
+            self.metrics = get_metrics(port=metrics_port)
+            self.metrics.update_capital(initial_capital)
+        else:
+            self.metrics = None
 
         # Initialize scraper
         logging.info("Initializing DEX scraper...")
@@ -113,8 +129,19 @@ class ArbitrageOrchestrator:
         try:
             # Step 1: Scrape DEXs
             logging.info("STEP 1: Scraping DEXs...")
+            scrape_start = datetime.now()
             scraped_data = self.scraper.scrape_all(pairs)
+            scrape_duration = (datetime.now() - scrape_start).total_seconds()
             results['scraped_pairs'] = len(scraped_data)
+
+            # Record scraping metrics
+            if self.metrics:
+                self.metrics.record_scrape(scrape_duration, len(scraped_data))
+                self.metrics.update_last_scrape_time(datetime.now().timestamp())
+                # Count DEX price points
+                for pair, prices in scraped_data.items():
+                    for p in prices:
+                        self.metrics.record_dex_price(p.dex)
 
             # Save scraped data
             self._save_scraped_data(scraped_data)
@@ -144,6 +171,17 @@ class ArbitrageOrchestrator:
 
             signals = self.ai_engine.analyze_scraped_data(scraped_dict)
             results['signals_generated'] = len(signals)
+
+            # Record signal metrics
+            if self.metrics:
+                for signal in signals:
+                    self.metrics.record_signal(
+                        priority=signal.execution_priority,
+                        confidence=signal.confidence_score,
+                        risk=signal.risk_score,
+                        buy_dex=signal.buy_dex,
+                        sell_dex=signal.sell_dex
+                    )
 
             # Log signals
             if signals:
@@ -206,6 +244,16 @@ class ArbitrageOrchestrator:
             self.trade_count += results['trades_executed']
             self.last_scrape_time = cycle_start
 
+            # Update performance metrics
+            if self.metrics:
+                performance = self.executor.get_performance_summary()
+                self.metrics.update_capital(self.executor.capital)
+                self.metrics.update_performance(
+                    win_rate=performance.get('win_rate', 0) / 100.0,
+                    total_return_pct=performance.get('total_return_pct', 0),
+                    sharpe_ratio=performance.get('sharpe_ratio')
+                )
+
             # Save cycle results
             self._save_cycle_results(results)
 
@@ -213,8 +261,19 @@ class ArbitrageOrchestrator:
             logging.error(f"Error in cycle: {e}", exc_info=True)
             results['error'] = str(e)
 
+            # Record error metric
+            if self.metrics:
+                self.metrics.record_error('cycle_error')
+
         finally:
             cycle_duration = (datetime.now() - cycle_start).total_seconds()
+
+            # Record cycle metrics
+            if self.metrics:
+                self.metrics.record_cycle(cycle_duration)
+                uptime = (datetime.now() - self.start_time).total_seconds()
+                self.metrics.update_uptime(uptime)
+
             logging.info(f"\nCycle completed in {cycle_duration:.1f}s")
 
         return results
@@ -263,9 +322,30 @@ class ArbitrageOrchestrator:
             actual_profit = result.get('profit_usd', 0)
             self.ai_engine.record_trade_outcome(signal, actual_profit, True)
             logging.info(f"    ✅ Trade successful! Profit: ${actual_profit:.2f}")
+
+            # Record successful trade metrics
+            if self.metrics:
+                self.metrics.record_trade(
+                    success=True,
+                    priority=signal.execution_priority,
+                    profit_usd=actual_profit,
+                    size_usd=signal.recommended_size_usd,
+                    profit_pct=signal.net_profit_pct
+                )
         else:
             self.ai_engine.record_trade_outcome(signal, 0, False)
             logging.info(f"    ❌ Trade failed: {result.get('reason', 'Unknown')}")
+
+            # Record failed trade metrics
+            if self.metrics:
+                self.metrics.record_trade(
+                    success=False,
+                    priority=signal.execution_priority,
+                    profit_usd=0,
+                    size_usd=signal.recommended_size_usd,
+                    profit_pct=0
+                )
+                self.metrics.record_error('trade_error')
 
         return result
 

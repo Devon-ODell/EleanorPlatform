@@ -39,5 +39,18 @@ Thumbs.db
 backtest_output.txt
 *.log
 
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+
+# Monitoring data
+monitoring/prometheus/data/
+monitoring/grafana/data/
+
+# Data and logs
+data/
+logs/
+
 # Keep results but gitignore pattern
 # results/*

@@ -108,6 +108,7 @@ EleanorPlatform/
 
 ## 📚 Documentation
 
+- **[Monitoring Setup Guide](MONITORING_SETUP.md)** ⭐ - Prometheus + Grafana dashboard
 - **[Regular DEX Arbitrage](README_DEFI_ARBITRAGE.md)** - Uniswap, PancakeSwap, etc.
 - **[Privacy Coin Arbitrage](README_PRIVACY_COINS.md)** - Monero (XMR) focus
 - **[Selenium Scraper Architecture](SELENIUM_SCRAPER_ARCHITECTURE.md)** - Anti-detection techniques
@@ -154,7 +155,18 @@ EleanorPlatform/
 - Full simulation of trades
 - Learn the system safely
 
-### 2. Run Backtests
+### 2. Paper Trading with Monitoring Dashboard ⭐
+```bash
+./start_monitoring.sh
+```
+- Full monitoring stack (Prometheus + Grafana)
+- Real-time dashboard at **http://localhost:3000**
+- Track: Capital, Win Rate, Profit/Loss, AI Decisions
+- Beautiful visualizations of all metrics
+
+**See [Monitoring Setup Guide](MONITORING_SETUP.md) for details**
+
+### 3. Run Backtests
 ```bash
 source venv/bin/activate
 
@@ -165,7 +177,7 @@ python run_backtest.py
 python run_privacy_backtest.py
 ```
 
-### 3. Real Trading (Advanced)
+### 4. Real Trading (Advanced)
 Edit `src/eleanor/orchestrator/scrape_and_trade.py`:
 ```python
 orchestrator = ArbitrageOrchestrator(
