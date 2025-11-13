@@ -1,0 +1,160 @@
+version: '3.8'
+
+# Raspberry Pi Optimized Docker Compose
+# Runs in VPN namespace for privacy
+
+services:
+  # Eleanor Arbitrage Bot (in VPN namespace)
+  arbitrage:
+    build:
+      context: .
+      dockerfile: Dockerfile.pi
+    image: eleanor-arbitrage:pi-arm64
+    container_name: eleanor-arbitrage-pi
+    restart: unless-stopped
+    network_mode: "none"  # Will use namespace network
+    volumes:
+      - ./src:/app/src:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - /etc/netns/vpn-scraping/resolv.conf:/etc/resolv.conf:ro
+    environment:
+      - ENABLE_METRICS=true
+      - METRICS_PORT=8000
+      - INITIAL_CAPITAL=${INITIAL_CAPITAL:-15000}
+      - PAPER_TRADING=${PAPER_TRADING:-true}
+      - SCRAPE_INTERVAL_MINUTES=${SCRAPE_INTERVAL_MINUTES:-20}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - USE_HEADLESS=true
+      - CHROMIUM_PATH=/usr/bin/chromium
+      - MIN_CONFIDENCE=${MIN_CONFIDENCE:-0.6}
+      - MIN_PROFIT_PCT=${MIN_PROFIT_PCT:-0.5}
+      - MAX_RISK_SCORE=${MAX_RISK_SCORE:-0.6}
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 4096M
+        reservations:
+          cpus: '1.0'
+          memory: 2048M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/metrics"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    command: /bin/bash -c "ip netns exec vpn-scraping python -u src/eleanor/orchestrator/scrape_and_trade.py"
+
+  # Prometheus (lightweight config for Pi)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: eleanor-prometheus-pi
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.retention.size=5GB'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.wal-compression'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"  # Only localhost (access via Tailscale)
+    networks:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana (lightweight for Pi)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: eleanor-grafana-pi
+    restart: unless-stopped
+    user: "472:472"
+    environment:
+      # Security
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-change_me_now}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY:-change_me_to_random_secret}
+
+      # Server
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+
+      # Disable unnecessary features for Pi
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_SNAPSHOTS_EXTERNAL_ENABLED=false
+
+      # Performance optimizations for Pi
+      - GF_RENDERING_SERVER_URL=
+      - GF_RENDERING_CALLBACK_URL=
+      - GF_LOG_LEVEL=warn
+
+      # Database (use SQLite for Pi)
+      - GF_DATABASE_TYPE=sqlite3
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"  # Only localhost (access via Tailscale)
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Metrics Bridge (exposes arbitrage metrics to host)
+  metrics-bridge:
+    image: alpine:latest
+    container_name: eleanor-metrics-bridge
+    restart: unless-stopped
+    network_mode: "host"
+    command: >
+      sh -c "while true; do
+        nc -l -p 8000 -c 'nc -w 1 10.200.1.2 8000 || echo HTTP/1.1 503 Service Unavailable';
+      done"
+    depends_on:
+      - arbitrage
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

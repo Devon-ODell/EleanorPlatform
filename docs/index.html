@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Eleanor Platform - DeFi Arbitrage Trading Dashboard">
+    <title>Eleanor Platform - Live Trading Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-options {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .option-card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .option-card p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .option-card ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .option-card li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #48bb78;
+        }
+
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 15px;
+            border-left: 4px solid #f59e0b;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 15px;
+            border-left: 4px solid #3b82f6;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            opacity: 0.8;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Eleanor Platform</h1>
+            <p class="subtitle">Privacy-Focused DeFi Arbitrage Trading Dashboard</p>
+        </header>
+
+        <div class="dashboard-options">
+            <div class="option-card">
+                <h2>📊 Option 1: Local Dashboard (Recommended)</h2>
+                <p>Run the monitoring stack locally on your machine for maximum privacy and control.</p>
+
+                <div class="info">
+                    <strong>✅ Best for:</strong> Privacy, security, full control over your data
+                </div>
+
+                <h3 style="margin: 20px 0 10px 0;">Quick Start:</h3>
+                <div class="code-block">
+# Clone the repository
+git clone https://github.com/Devon-ODell/EleanorPlatform.git
+cd EleanorPlatform
+
+# Start monitoring stack (Prometheus + Grafana + Bot)
+docker-compose -f docker-compose.monitoring.yml up -d
+
+# Access dashboards:
+# Grafana: http://localhost:3000 (admin/eleanor2025)
+# Prometheus: http://localhost:9090
+# Metrics: http://localhost:8000/metrics
+                </div>
+
+                <a href="https://github.com/Devon-ODell/EleanorPlatform" class="btn">View on GitHub</a>
+                <a href="#local-setup" class="btn btn-secondary">Setup Instructions</a>
+            </div>
+
+            <div class="option-card">
+                <h2>☁️ Option 2: Grafana Cloud (Public)</h2>
+                <p>Publish your dashboard to Grafana Cloud for remote access. Configure authentication and sharing settings.</p>
+
+                <div class="warning">
+                    <strong>⚠️ Privacy Warning:</strong> Public dashboards may expose trading metrics. Use authentication and consider data sensitivity.
+                </div>
+
+                <h3 style="margin: 20px 0 10px 0;">Steps:</h3>
+                <ol style="margin-left: 20px;">
+                    <li>Sign up for <a href="https://grafana.com/auth/sign-up/create-user" target="_blank" style="color: #667eea;">Grafana Cloud</a> (Free tier available)</li>
+                    <li>Create a new stack</li>
+                    <li>Configure Prometheus remote write endpoint</li>
+                    <li>Import dashboard JSON from <code>monitoring/grafana/dashboards/eleanor_arbitrage.json</code></li>
+                    <li>Set up authentication (API keys, viewer permissions)</li>
+                    <li>Share dashboard URL securely</li>
+                </ol>
+
+                <a href="https://grafana.com/products/cloud/" class="btn" target="_blank">Grafana Cloud</a>
+            </div>
+
+            <div class="option-card">
+                <h2>🔒 Option 3: Self-Hosted with Cloudflare Tunnel</h2>
+                <p>Expose your local Grafana securely to the internet using Cloudflare Tunnel (zero trust).</p>
+
+                <h3 style="margin: 20px 0 10px 0;">Setup:</h3>
+                <div class="code-block">
+# Install cloudflared
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared-linux-amd64.deb
+
+# Authenticate with Cloudflare
+cloudflared tunnel login
+
+# Create tunnel
+cloudflared tunnel create eleanor-dashboard
+
+# Run tunnel
+cloudflared tunnel --url http://localhost:3000
+                </div>
+
+                <div class="info">
+                    <strong>✅ Benefits:</strong> No port forwarding, free SSL, Cloudflare Access for authentication
+                </div>
+
+                <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/" class="btn" target="_blank">Learn More</a>
+            </div>
+
+            <div class="option-card" id="local-setup">
+                <h2>🛠️ Local Setup Instructions</h2>
+
+                <h3>Prerequisites:</h3>
+                <ul>
+                    <li>Docker & Docker Compose installed</li>
+                    <li>Git installed</li>
+                    <li>4GB+ RAM available</li>
+                </ul>
+
+                <h3>Step 1: Clone & Start</h3>
+                <div class="code-block">
+git clone https://github.com/Devon-ODell/EleanorPlatform.git
+cd EleanorPlatform
+docker-compose -f docker-compose.monitoring.yml up -d
+                </div>
+
+                <h3>Step 2: Access Grafana</h3>
+                <p>Open <code>http://localhost:3000</code> in your browser</p>
+                <ul>
+                    <li><strong>Username:</strong> admin</li>
+                    <li><strong>Password:</strong> eleanor2025 (change this!)</li>
+                </ul>
+
+                <h3>Step 3: View Dashboard</h3>
+                <p>The "Eleanor Platform - DeFi Arbitrage" dashboard is pre-configured and ready.</p>
+
+                <h3>Step 4: Security Hardening (Important!)</h3>
+                <div class="code-block">
+# Create .env file
+cp .env.example .env
+
+# Edit .env and set strong passwords
+nano .env
+
+# Restart with new credentials
+docker-compose -f docker-compose.monitoring.yml down
+docker-compose -f docker-compose.monitoring.yml up -d
+                </div>
+
+                <div class="warning">
+                    <strong>⚠️ Security Reminder:</strong> Always change default passwords! Keep metrics endpoint (port 8000) firewalled.
+                </div>
+            </div>
+
+            <div class="option-card">
+                <h2>📈 Example Dashboard Metrics</h2>
+                <p>The pre-configured dashboard displays:</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">$42,410</div>
+                        <div class="stat-label">Current Capital</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">182%</div>
+                        <div class="stat-label">Total Return</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">Win Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">1,274</div>
+                        <div class="stat-label">Total Trades</div>
+                    </div>
+                </div>
+
+                <h3>Dashboard Panels Include:</h3>
+                <ul>
+                    <li>💰 Real-time capital tracking</li>
+                    <li>📊 Trade execution success/failure rates</li>
+                    <li>🎯 AI confidence & risk scores</li>
+                    <li>⏱️ Scraping performance metrics</li>
+                    <li>🏦 DEX-specific opportunity distribution</li>
+                    <li>📈 Profit/loss over time</li>
+                    <li>🔍 Detailed trade breakdown by priority</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p>Eleanor Platform © 2025 | <a href="https://github.com/Devon-ODell/EleanorPlatform" style="color: #fff;">GitHub</a></p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">Made with ❤️ for privacy-conscious DeFi traders</p>
+        </footer>
+    </div>
+</body>
+</html>

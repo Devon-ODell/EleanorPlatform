@@ -1,0 +1,34 @@
+FROM python:3.10-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements_selenium.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements_selenium.txt && \
+    pip install --no-cache-dir prometheus-client
+
+# Copy application code
+COPY src/ ./src/
+
+# Create data and log directories
+RUN mkdir -p /app/data/arbitrage /app/logs
+
+# Expose Prometheus metrics port
+EXPOSE 8000
+
+# Set Python path
+ENV PYTHONPATH=/app/src/eleanor
+
+# Run the orchestrator
+CMD ["python", "-u", "src/eleanor/orchestrator/scrape_and_trade.py"]
