@@ -1,0 +1,53 @@
+# Raspberry Pi ARM64 Dockerfile
+FROM python:3.10-slim-bullseye
+
+# Install ARM-compatible dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Chromium for ARM
+    chromium \
+    chromium-driver \
+    # Networking tools
+    curl \
+    wget \
+    netcat \
+    iproute2 \
+    iputils-ping \
+    # Build tools (for some Python packages)
+    build-essential \
+    # Cleanup
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements_selenium.txt .
+
+# Install Python dependencies
+# Note: Some packages may need ARM-specific builds
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements_selenium.txt && \
+    pip install --no-cache-dir prometheus-client
+
+# Copy application code (read-only in container for security)
+COPY src/ ./src/
+
+# Create data and log directories
+RUN mkdir -p /app/data/arbitrage /app/logs && \
+    chmod 777 /app/logs /app/data
+
+# Environment variables
+ENV PYTHONPATH=/app/src/eleanor \
+    PYTHONUNBUFFERED=1 \
+    CHROMIUM_PATH=/usr/bin/chromium \
+    CHROMEDRIVER_PATH=/usr/bin/chromedriver
+
+# Expose Prometheus metrics port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8000/metrics || exit 1
+
+# Run the orchestrator
+CMD ["python", "-u", "src/eleanor/orchestrator/scrape_and_trade.py"]

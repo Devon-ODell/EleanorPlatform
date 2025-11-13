@@ -23,6 +23,40 @@ That's it! The system will:
 
 ---
 
+## 🥧 Quick Start (Raspberry Pi)
+
+Run on Raspberry Pi with dual VPN + post-quantum security:
+
+```bash
+# 1. Initial setup (one-time)
+git clone https://github.com/Devon-ODell/EleanorPlatform.git
+cd EleanorPlatform
+sudo ./setup-raspberry-pi.sh
+
+# 2. Configure Mullvad VPN
+mullvad account login YOUR_ACCOUNT_NUMBER
+mullvad connect
+
+# 3. Setup post-quantum SSH + dual VPN
+sudo ./configure-pq-ssh.sh
+sudo ./setup-dual-vpn.sh
+
+# 4. Start trading with monitoring
+docker-compose -f docker-compose.pi.yml up -d
+```
+
+**Features:**
+- ✅ Runs on $160 Raspberry Pi 4/5
+- ✅ Dual VPN (scraping via Mullvad, management via Tailscale)
+- ✅ Post-quantum SSH encryption (sntrup761x25519)
+- ✅ Advanced user agent masking
+- ✅ Full monitoring stack
+- ✅ Remote access from anywhere
+
+**See [Raspberry Pi Deployment Guide](RASPBERRY_PI_DEPLOYMENT.md) for details**
+
+---
+
 ## 📊 What This Does
 
 Eleanor Platform automatically:
@@ -108,6 +142,7 @@ EleanorPlatform/
 
 ## 📚 Documentation
 
+- **[Raspberry Pi Deployment](RASPBERRY_PI_DEPLOYMENT.md)** 🆕 - Complete Pi setup with dual VPN + PQ encryption
 - **[Monitoring Setup Guide](MONITORING_SETUP.md)** ⭐ - Prometheus + Grafana dashboard
 - **[Regular DEX Arbitrage](README_DEFI_ARBITRAGE.md)** - Uniswap, PancakeSwap, etc.
 - **[Privacy Coin Arbitrage](README_PRIVACY_COINS.md)** - Monero (XMR) focus
